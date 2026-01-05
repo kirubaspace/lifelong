@@ -187,7 +187,7 @@ async function searchGoogle(query: string): Promise<SearchResult[]> {
  * Calculate confidence score for a potential infringement
  * Now content-type aware for video and PDF specific detection
  */
-function calculateConfidence(
+export function calculateConfidence(
     result: SearchResult,
     contentTitle: string,
     contentKeywords: string[],

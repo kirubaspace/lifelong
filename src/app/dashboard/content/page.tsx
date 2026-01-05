@@ -5,13 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Plus, ExternalLink, MoreVertical, Search, AlertTriangle, Video, FileText } from "lucide-react"
 import Link from "next/link"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { formatDistanceToNow } from "date-fns"
+import { ContentActions } from "./content-actions"
 
 export default async function ContentPage() {
     const session = await auth()
@@ -82,24 +77,7 @@ export default async function ContentPage() {
                                             {item.originalUrl}
                                         </CardDescription>
                                     </div>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white">
-                                                <MoreVertical className="w-4 h-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="bg-slate-900 border-slate-700">
-                                            <DropdownMenuItem asChild className="text-slate-300 focus:text-white focus:bg-slate-800">
-                                                <Link href={`/dashboard/content/${item.id}`}>View Details</Link>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem asChild className="text-slate-300 focus:text-white focus:bg-slate-800">
-                                                <Link href={`/dashboard/content/${item.id}/edit`}>Edit</Link>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem className="text-red-400 focus:text-red-300 focus:bg-slate-800">
-                                                Delete
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                    <ContentActions contentId={item.id} />
                                 </div>
                             </CardHeader>
                             <CardContent>
