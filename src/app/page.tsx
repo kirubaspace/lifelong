@@ -65,7 +65,7 @@ export default function LandingPage() {
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
             </Button>
-            <Button variant="outline" size="lg" className="border-slate-700 text-white hover:bg-slate-800 text-lg px-8 h-14">
+            <Button variant="outline" size="lg" className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white text-lg px-8 h-14">
               <Play className="w-5 h-5 mr-2" />
               Watch Demo
             </Button>
