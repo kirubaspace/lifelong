@@ -14,6 +14,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { ArrowLeft, Loader2, Plus, X, Video, FileText } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
+import { toast } from "sonner"
 
 const formSchema = z.object({
     title: z.string().min(1, "Title is required").max(200),
@@ -69,13 +70,15 @@ export default function NewContentPage() {
             })
 
             if (!response.ok) {
-                throw new Error("Failed to create content")
+                const errorData = await response.json()
+                throw new Error(errorData.error || "Failed to create content")
             }
 
             router.push("/dashboard/content")
             router.refresh()
         } catch (error) {
             console.error(error)
+            toast.error(error instanceof Error ? error.message : "Something went wrong")
         } finally {
             setIsLoading(false)
         }
