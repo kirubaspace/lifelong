@@ -13,10 +13,15 @@ export default function BillingPage() {
     const handleCheckout = async (plan: string) => {
         try {
             setLoading(plan)
-            const response = await fetch("/api/billing", {
+            const priceId = PLANS[plan as keyof typeof PLANS]?.priceId
+            if (!priceId) {
+                console.error("No price ID for plan:", plan)
+                return
+            }
+            const response = await fetch("/api/stripe/checkout", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ plan }),
+                body: JSON.stringify({ plan, priceId }),
             })
 
             const data = await response.json()
@@ -34,7 +39,7 @@ export default function BillingPage() {
     const handlePortal = async () => {
         try {
             setLoading("portal")
-            const response = await fetch("/api/billing")
+            const response = await fetch("/api/stripe/portal", { method: "POST" })
             const data = await response.json()
 
             if (data.url) {
@@ -105,8 +110,8 @@ export default function BillingPage() {
                             <Button
                                 onClick={() => handleCheckout(key)}
                                 className={`w-full ${'popular' in plan && plan.popular
-                                        ? 'bg-purple-600 hover:bg-purple-700'
-                                        : 'bg-slate-700 hover:bg-slate-600'
+                                    ? 'bg-purple-600 hover:bg-purple-700'
+                                    : 'bg-slate-700 hover:bg-slate-600'
                                     }`}
                                 disabled={loading === key || plan.price === 0}
                             >
