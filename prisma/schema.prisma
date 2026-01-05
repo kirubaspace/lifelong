@@ -1,0 +1,247 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// USER & AUTH
+// ============================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  emailVerified DateTime?
+  image         String?
+  
+  // Subscription
+  plan              String    @default("free") // free, starter, pro, enterprise
+  stripeCustomerId  String?   @unique
+  stripeSubscriptionId String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  accounts         Account[]
+  sessions         Session[]
+  protectedContent ProtectedContent[]
+  subscription     Subscription?
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================================================
+// BILLING
+// ============================================================================
+
+model Subscription {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  stripeSubscriptionId String   @unique
+  status               String   // active, canceled, past_due, etc.
+  priceId              String?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean  @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================================
+// PROTECTED CONTENT
+// ============================================================================
+
+model ProtectedContent {
+  id           String   @id @default(cuid())
+  userId       String
+  
+  title        String
+  originalUrl  String
+  description  String?  @db.Text
+  keywords     String[] // Array of search keywords
+  platformType String   @default("custom") // teachable, thinkific, gumroad, custom
+  isActive     Boolean  @default(true)
+  
+  // Content Type - video or pdf
+  contentType  String   @default("video") // video, pdf
+  
+  // Video-specific metadata
+  videoDuration    Int?      // Duration in seconds
+  videoResolution  String?   // e.g., "1920x1080"
+  videoFileSize    BigInt?   // Size in bytes
+  videoHash        String?   // SHA-256 hash of the file
+  
+  // PDF-specific metadata
+  pdfPageCount     Int?      // Number of pages
+  pdfFileSize      BigInt?   // Size in bytes
+  pdfHash          String?   // SHA-256 hash of the file
+  pdfAuthor        String?   // Author metadata from PDF
+  
+  // Common file identifiers
+  fileExtension    String?   // Original file extension
+  fileThumbnail    String?   // URL to thumbnail image
+  
+  lastScannedAt DateTime?
+  scanCount     Int      @default(0)
+  
+  // Scheduling
+  scanFrequency String   @default("MANUAL") // MANUAL, DAILY, WEEKLY
+  nextScanAt    DateTime? 
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  infringements Infringement[]
+
+  @@index([userId])
+  @@index([isActive])
+  @@index([contentType])
+}
+
+// ============================================================================
+// INFRINGEMENTS
+// ============================================================================
+
+model Infringement {
+  id        String @id @default(cuid())
+  contentId String
+  
+  sourceUrl       String
+  sourceType      String   // google, torrent, telegram, social, marketplace
+  sourceDomain    String?
+  title           String?
+  snippet         String?  @db.Text
+  
+  confidence      Int      @default(0) // 0-100 score
+  status          String   @default("detected") // detected, reviewing, takedown_sent, removed, disputed, dismissed, failed
+  
+  evidenceScreenshot String?
+  autoDetected       Boolean @default(true)
+  
+  detectedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  content      ProtectedContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  dmcaNotices  DMCANotice[]
+
+  @@index([contentId])
+  @@index([status])
+  @@index([detectedAt])
+}
+
+// ============================================================================
+// DMCA NOTICES
+// ============================================================================
+
+model DMCANotice {
+  id             String @id @default(cuid())
+  infringementId String
+  
+  recipientType  String   // hosting_provider, search_engine, social_platform, telegram, email
+  recipientEmail String?
+  recipientName  String?
+  
+  noticeContent  String   @db.Text
+  pdfUrl         String?
+  
+  status         String   @default("draft") // draft, sent, acknowledged, complied, disputed, failed
+  
+  sentAt         DateTime?
+  responseAt     DateTime?
+  responseContent String?  @db.Text
+  removalConfirmed Boolean @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  infringement  Infringement   @relation(fields: [infringementId], references: [id], onDelete: Cascade)
+  events        NoticeEvent[]
+
+  @@index([infringementId])
+  @@index([status])
+}
+
+model NoticeEvent {
+  id        String   @id @default(cuid())
+  noticeId  String
+  
+  eventType String   // created, sent, opened, response_received, complied, failed
+  details   String?  @db.Text
+  metadata  Json?
+  
+  createdAt DateTime @default(now())
+
+  notice DMCANotice @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+
+  @@index([noticeId])
+}
+
+// ============================================================================
+// SCAN JOBS
+// ============================================================================
+
+model ScanJob {
+  id        String @id @default(cuid())
+  contentId String
+  
+  status    String   @default("pending") // pending, running, completed, failed
+  scanType  String   // google, torrent, telegram, all
+  
+  startedAt   DateTime?
+  completedAt DateTime?
+  
+  resultsCount    Int    @default(0)
+  infringementsFound Int @default(0)
+  
+  errorMessage String? @db.Text
+  
+  createdAt DateTime @default(now())
+
+  @@index([contentId])
+  @@index([status])
+}
