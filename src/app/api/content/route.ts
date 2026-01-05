@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
         })
 
         const userPlan = session.user.plan || 'free'
+
         if (!canAddContent(userPlan, currentCount)) {
             return NextResponse.json(
                 { error: "You've reached your plan limit. Upgrade to add more courses." },
@@ -98,6 +99,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: error.issues }, { status: 400 })
         }
         console.error("Error creating content:", error)
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+        // Temporary: Return actual error message to client for debugging
+        return NextResponse.json({ error: error instanceof Error ? error.message : "Internal server error" }, { status: 500 })
     }
 }
