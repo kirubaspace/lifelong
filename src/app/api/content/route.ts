@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { z } from "zod"
 import { canAddContent } from "@/lib/stripe"
+import { applyRateLimit } from "@/lib/rate-limit"
 
 const createContentSchema = z.object({
     title: z.string().min(1).max(200),

@@ -164,36 +164,38 @@ export default function LandingPage() {
             {[
               {
                 name: "Starter",
-                price: 29,
+                price: 5,
                 description: "For individual course creators",
                 features: [
                   "3 protected courses",
                   "50 scans per day",
                   "Manual takedowns",
                   "Email reports",
+                  "Basic analytics",
                 ],
               },
               {
                 name: "Pro",
-                price: 79,
+                price: 15,
                 description: "For serious course creators",
                 popular: true,
                 features: [
                   "15 protected courses",
                   "500 scans per day",
-                  "Telegram & Web Scanning",
+                  "Telegram monitoring",
+                  "Torrent site detection",
                   "Unlimited auto-takedowns",
-                  "Priority scanning",
-                  "SMS alerts",
+                  "Advanced analytics",
                 ],
               },
               {
                 name: "Enterprise",
-                price: 299,
+                price: 39,
                 description: "For platforms & agencies",
                 features: [
                   "Unlimited courses",
                   "Unlimited scans",
+                  "All detection sources",
                   "White-label reports",
                   "API access",
                   "Dedicated support",
@@ -268,6 +270,14 @@ export default function LandingPage() {
               <Shield className="w-4 h-4 text-white" />
             </div>
             <span className="text-white font-semibold">PirateSlayer</span>
+          </div>
+          <div className="flex items-center gap-6 text-sm">
+            <Link href="/terms" className="text-slate-400 hover:text-white transition-colors">
+              Terms of Service
+            </Link>
+            <Link href="/privacy" className="text-slate-400 hover:text-white transition-colors">
+              Privacy Policy
+            </Link>
           </div>
           <p className="text-slate-500 text-sm">
             © 2026 PirateSlayer. All rights reserved.

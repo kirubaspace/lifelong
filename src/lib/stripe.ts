@@ -8,7 +8,7 @@ export const stripe = process.env.STRIPE_SECRET_KEY
     })
     : null as unknown as Stripe
 
-// Pricing configuration
+// Pricing configuration - Affordable pricing for indie creators
 export const PLANS = {
     free: {
         name: 'Free',
@@ -32,7 +32,7 @@ export const PLANS = {
         name: 'Starter',
         slug: 'starter',
         description: 'For individual course creators',
-        price: 29,
+        price: 5,
         priceId: process.env.STRIPE_STARTER_PRICE_ID,
         features: [
             '3 protected courses',
@@ -51,7 +51,7 @@ export const PLANS = {
         name: 'Pro',
         slug: 'pro',
         description: 'For serious course creators',
-        price: 79,
+        price: 15,
         priceId: process.env.STRIPE_PRO_PRICE_ID,
         popular: true,
         features: [
@@ -59,9 +59,9 @@ export const PLANS = {
             '500 scans per day',
             'Unlimited auto-takedowns',
             'Priority scanning',
-            'SMS alerts',
-            'Advanced analytics',
             'Telegram monitoring',
+            'Torrent site detection',
+            'Advanced analytics',
         ],
         limits: {
             protectedContent: 15,
@@ -73,14 +73,14 @@ export const PLANS = {
         name: 'Enterprise',
         slug: 'enterprise',
         description: 'For course platforms & agencies',
-        price: 299,
+        price: 39,
         priceId: process.env.STRIPE_ENTERPRISE_PRICE_ID,
         features: [
             'Unlimited protected courses',
             'Unlimited scans',
             'Unlimited auto-takedowns',
             'Priority scanning',
-            'SMS & Slack alerts',
+            'All detection sources',
             'White-label reports',
             'API access',
             'Dedicated support',

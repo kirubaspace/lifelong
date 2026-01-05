@@ -11,6 +11,12 @@ export default async function AnalyticsPage() {
         return null
     }
 
+    // First get user's content IDs for filtering
+    const userContentIds = await prisma.protectedContent.findMany({
+        where: { userId: session.user.id },
+        select: { id: true }
+    }).then(content => content.map(c => c.id))
+
     // Fetch real analytics data
     const [
         totalScans,
@@ -23,20 +29,20 @@ export default async function AnalyticsPage() {
         // Total scans
         prisma.scanJob.count({
             where: {
-                content: { is: { userId: session.user.id } }
+                contentId: { in: userContentIds }
             }
         }),
         // Total infringements
         prisma.infringement.count({
             where: {
-                content: { is: { userId: session.user.id } }
+                contentId: { in: userContentIds }
             }
         }),
         // Resolved infringements
         prisma.infringement.count({
             where: {
-                content: { is: { userId: session.user.id } },
-                status: 'resolved'
+                contentId: { in: userContentIds },
+                status: 'removed'
             }
         }),
         // Protected content count
@@ -46,7 +52,7 @@ export default async function AnalyticsPage() {
         // Recent scans (last 30 days, grouped by day)
         prisma.scanJob.findMany({
             where: {
-                content: { is: { userId: session.user.id } },
+                contentId: { in: userContentIds },
                 createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
             },
             orderBy: { createdAt: 'asc' }
@@ -54,7 +60,7 @@ export default async function AnalyticsPage() {
         // Infringements by month
         prisma.infringement.findMany({
             where: {
-                content: { is: { userId: session.user.id } },
+                contentId: { in: userContentIds },
                 detectedAt: { gte: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000) }
             },
             orderBy: { detectedAt: 'asc' }

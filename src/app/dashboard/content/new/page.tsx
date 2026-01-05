@@ -15,6 +15,7 @@ import { ArrowLeft, Loader2, Plus, X, Video, FileText } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
+import { Checkbox } from "@/components/ui/checkbox"
 
 const formSchema = z.object({
     title: z.string().min(1, "Title is required").max(200),
@@ -24,6 +25,9 @@ const formSchema = z.object({
     contentType: z.enum(["video", "pdf"]),
     keywords: z.array(z.string()).min(1, "Add at least one keyword"),
     scanFrequency: z.enum(["MANUAL", "DAILY", "WEEKLY"]),
+    certifyOwnership: z.boolean().refine((val) => val === true, {
+        message: "You must certify that you own or are authorized to protect this content"
+    }),
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -43,6 +47,7 @@ export default function NewContentPage() {
             contentType: "video",
             keywords: [],
             scanFrequency: "MANUAL",
+            certifyOwnership: false as unknown as true,
         },
     })
 
@@ -351,6 +356,36 @@ export default function NewContentPage() {
                                     </FormItem>
                                 )}
                             />
+
+                            {/* Ownership Certification */}
+                            <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                                <FormField
+                                    control={form.control}
+                                    name="certifyOwnership"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                            <FormControl>
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
+                                                    className="border-amber-500 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                                                />
+                                            </FormControl>
+                                            <div className="space-y-1 leading-none">
+                                                <FormLabel className="text-amber-200 font-medium">
+                                                    Ownership Certification (Required)
+                                                </FormLabel>
+                                                <FormDescription className="text-amber-300/80 text-sm">
+                                                    I certify under penalty of perjury that I am the copyright owner or
+                                                    authorized to act on behalf of the owner of this content. I understand
+                                                    that filing a false DMCA notice can result in legal liability.
+                                                </FormDescription>
+                                                <FormMessage />
+                                            </div>
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
 
                             {/* Submit */}
                             <div className="flex gap-4 pt-4">

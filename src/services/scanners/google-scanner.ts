@@ -371,17 +371,16 @@ export async function scanContent(contentId: string): Promise<ScanResult[]> {
  * Run a full scan and save results to database
  */
 import { searchTelegram, convertToInfringement } from "./telegram-scanner"
-
-// ... existing imports ...
+import { runTorrentScan } from "./torrent-scanner"
 
 /**
- * Run a full scan (Google + Telegram) and save results to database
+ * Run a full scan (Google + Telegram + Torrent) and save results to database
  */
 export async function runScanJob(contentId: string): Promise<number> {
     const scanJob = await prisma.scanJob.create({
         data: {
             contentId,
-            scanType: "full", // Changed from "google" to "full"
+            scanType: "full",
             status: "running",
             startedAt: new Date(),
         },
@@ -389,25 +388,41 @@ export async function runScanJob(contentId: string): Promise<number> {
 
     try {
         // Run Google Scan
+        console.log(`[Scan] Starting Google scan for content: ${contentId}`)
         const googleResults = await scanContent(contentId)
+        console.log(`[Scan] Google found ${googleResults.length} results`)
 
-        // Run Telegram Scan (in parallel)
+        // Get content for Telegram and Torrent scans
         const content = await prisma.protectedContent.findUnique({ where: { id: contentId } })
-        let telegramResults: any[] = [] // Explicitly typed as any[] to avoid TS error
+
+        let telegramResults: any[] = []
+        let torrentInfringements = 0
 
         if (content) {
+            // Run Telegram Scan
             try {
-                // Search specifically for the title
+                console.log(`[Scan] Starting Telegram scan for: ${content.title}`)
                 const tgRawResults = await searchTelegram(content.title)
                 telegramResults = tgRawResults.map(r => convertToInfringement(r, contentId))
+                console.log(`[Scan] Telegram found ${telegramResults.length} results`)
             } catch (err) {
-                console.error("Telegram scan failed:", err)
+                console.error("[Scan] Telegram scan failed:", err)
                 // Continue even if Telegram fails
+            }
+
+            // Run Torrent Scan
+            try {
+                console.log(`[Scan] Starting Torrent scan for: ${content.title}`)
+                torrentInfringements = await runTorrentScan(contentId)
+                console.log(`[Scan] Torrent scan found ${torrentInfringements} new infringements`)
+            } catch (err) {
+                console.error("[Scan] Torrent scan failed:", err)
+                // Continue even if Torrent scan fails
             }
         }
 
         // Save infringements to database
-        let newInfringements = 0
+        let newInfringements = torrentInfringements // Torrent already saved to DB
 
         // Process Google Results
         for (const result of googleResults) {
@@ -461,7 +476,7 @@ export async function runScanJob(contentId: string): Promise<number> {
             data: {
                 status: "completed",
                 completedAt: new Date(),
-                resultsCount: googleResults.length + telegramResults.length,
+                resultsCount: googleResults.length + telegramResults.length + torrentInfringements,
                 infringementsFound: newInfringements,
             },
         })
@@ -475,6 +490,7 @@ export async function runScanJob(contentId: string): Promise<number> {
             },
         })
 
+        console.log(`[Scan] Completed! Total new infringements: ${newInfringements}`)
         return newInfringements
     } catch (error) {
         // Update scan job with error
@@ -490,3 +506,4 @@ export async function runScanJob(contentId: string): Promise<number> {
         throw error
     }
 }
+

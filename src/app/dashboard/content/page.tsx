@@ -68,16 +68,18 @@ export default async function ContentPage() {
             ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {content.map((item) => (
-                        <Card key={item.id} className="bg-slate-900 border-slate-800 hover:border-slate-700 transition-colors">
+                        <Card key={item.id} className="bg-slate-900 border-slate-800 hover:border-slate-700 transition-colors overflow-hidden">
                             <CardHeader className="pb-3">
-                                <div className="flex items-start justify-between">
-                                    <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1 min-w-0 overflow-hidden">
                                         <CardTitle className="text-white truncate">{item.title}</CardTitle>
                                         <CardDescription className="text-slate-400 truncate mt-1">
                                             {item.originalUrl}
                                         </CardDescription>
                                     </div>
-                                    <ContentActions contentId={item.id} />
+                                    <div className="flex-shrink-0">
+                                        <ContentActions contentId={item.id} />
+                                    </div>
                                 </div>
                             </CardHeader>
                             <CardContent>
@@ -111,14 +113,23 @@ export default async function ContentPage() {
                                             ? `Scanned ${formatDistanceToNow(item.lastScannedAt, { addSuffix: true })}`
                                             : "Never scanned"}
                                     </span>
-                                    <Link
-                                        href={item.originalUrl}
-                                        target="_blank"
-                                        className="text-purple-400 hover:text-purple-300 flex items-center gap-1"
-                                    >
-                                        <ExternalLink className="w-3 h-3" />
-                                        Visit
-                                    </Link>
+                                    <div className="flex items-center gap-3">
+                                        <Link
+                                            href={item.originalUrl}
+                                            target="_blank"
+                                            className="text-purple-400 hover:text-purple-300 flex items-center gap-1"
+                                        >
+                                            <ExternalLink className="w-3 h-3" />
+                                            Visit
+                                        </Link>
+                                        <Link
+                                            href={`/dashboard/content/${item.id}`}
+                                            className="text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                                        >
+                                            View
+                                        </Link>
+                                        <ContentActions contentId={item.id} />
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>

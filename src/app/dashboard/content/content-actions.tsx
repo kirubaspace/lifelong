@@ -45,7 +45,11 @@ export function ContentActions({ contentId }: { contentId: string }) {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-slate-400 hover:text-white hover:bg-slate-700 bg-slate-800/50 rounded-md h-8 w-8"
+                >
                     <MoreVertical className="w-4 h-4" />
                 </Button>
             </DropdownMenuTrigger>
