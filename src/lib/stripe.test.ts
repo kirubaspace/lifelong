@@ -9,14 +9,14 @@ describe('Stripe Pricing Logic', () => {
     it('should return correct limits for free plan', () => {
         const limits = getPlanLimits('free')
         expect(limits.protectedContent).toBe(1)
-        expect(limits.scansPerDay).toBe(10)
+        expect(limits.scansPerDay).toBe(1)
         expect(limits.autoTakedowns).toBe(false)
     })
 
     it('should return correct limits for starter plan', () => {
         const limits = getPlanLimits('starter')
-        expect(limits.protectedContent).toBe(3)
-        expect(limits.scansPerDay).toBe(50)
+        expect(limits.protectedContent).toBe(5)
+        expect(limits.scansPerDay).toBe(5)
     })
 
     it('should return correct limits for pro plan', () => {
@@ -27,13 +27,13 @@ describe('Stripe Pricing Logic', () => {
 
     it('should allow adding content if under limit', () => {
         expect(canAddContent('free', 0)).toBe(true)
-        expect(canAddContent('starter', 2)).toBe(true)
-        expect(canAddContent('enterprise', 9999)).toBe(true)
+        expect(canAddContent('starter', 4)).toBe(true)
+        expect(canAddContent('enterprise', 49)).toBe(true)
     })
 
     it('should block adding content if limit reached', () => {
         expect(canAddContent('free', 1)).toBe(false)
-        expect(canAddContent('starter', 3)).toBe(false)
+        expect(canAddContent('starter', 5)).toBe(false)
     })
 
     it('should allow auto takedowns only for pro and enterprise', () => {

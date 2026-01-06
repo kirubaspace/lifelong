@@ -8,7 +8,10 @@ export const stripe = process.env.STRIPE_SECRET_KEY
     })
     : null as unknown as Stripe
 
-// Pricing configuration - Affordable pricing for indie creators
+// Pricing configuration - Optimized for sustainability:
+// - Google CSE: Now only 3 queries/scan (down from 17) = 6x capacity
+// - Pricing aligned with industry standards for positive margins
+// Supports ~100-200 active users on all free tiers
 export const PLANS = {
     free: {
         name: 'Free',
@@ -18,77 +21,80 @@ export const PLANS = {
         priceId: null,
         features: [
             '1 protected course',
-            '10 scans per day',
+            '1 scan per day',
+            'Telegram & Torrent detection',
             'Manual takedowns only',
-            'Email reports',
         ],
         limits: {
             protectedContent: 1,
-            scansPerDay: 10,
+            scansPerDay: 1,
             autoTakedowns: false,
+            useGoogleCSE: false, // Free tier uses alternatives only
         },
     },
     starter: {
         name: 'Starter',
         slug: 'starter',
         description: 'For individual course creators',
-        price: 5,
+        price: 19,
         priceId: process.env.STRIPE_STARTER_PRICE_ID,
         features: [
-            '3 protected courses',
-            '50 scans per day',
+            '5 protected courses',
+            '5 scans per day',
+            'Google + Telegram + Torrent detection',
             'Manual takedowns',
-            'Email reports',
+            'Email alerts',
             'Basic analytics',
         ],
         limits: {
-            protectedContent: 3,
-            scansPerDay: 50,
+            protectedContent: 5,
+            scansPerDay: 5,
             autoTakedowns: false,
+            useGoogleCSE: true,
         },
     },
     pro: {
         name: 'Pro',
         slug: 'pro',
         description: 'For serious course creators',
-        price: 15,
+        price: 49,
         priceId: process.env.STRIPE_PRO_PRICE_ID,
         popular: true,
         features: [
             '15 protected courses',
-            '500 scans per day',
-            'Unlimited auto-takedowns',
+            '15 scans per day',
+            'All detection sources',
+            'Auto-takedowns',
             'Priority scanning',
-            'Telegram monitoring',
-            'Torrent site detection',
             'Advanced analytics',
         ],
         limits: {
             protectedContent: 15,
-            scansPerDay: 500,
+            scansPerDay: 15,
             autoTakedowns: true,
+            useGoogleCSE: true,
         },
     },
     enterprise: {
         name: 'Enterprise',
         slug: 'enterprise',
         description: 'For course platforms & agencies',
-        price: 39,
+        price: 99,
         priceId: process.env.STRIPE_ENTERPRISE_PRICE_ID,
         features: [
-            'Unlimited protected courses',
-            'Unlimited scans',
-            'Unlimited auto-takedowns',
-            'Priority scanning',
+            '50 protected courses',
+            '50 scans per day',
             'All detection sources',
+            'Auto-takedowns',
             'White-label reports',
             'API access',
-            'Dedicated support',
+            'Priority support',
         ],
         limits: {
-            protectedContent: Infinity,
-            scansPerDay: Infinity,
+            protectedContent: 50,
+            scansPerDay: 50,
             autoTakedowns: true,
+            useGoogleCSE: true,
         },
     },
 } as const

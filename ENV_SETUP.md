@@ -1,38 +1,67 @@
-# PirateSlayer - DMCA Takedown SaaS
+# PirateSlayer - Environment Variables Setup
 
-## Environment Variables
+Copy the variables below to your `.env.local` file or Vercel Environment Variables.
 
-# Copy this file to .env and fill in your values
+## Database (Neon.tech)
+```
+DATABASE_URL="postgresql://user:password@host:5432/database?sslmode=require"
+```
 
-# Database (Supabase, Neon, or local PostgreSQL)
-DATABASE_URL="postgresql://user:password@localhost:5432/pirateslayer?schema=public"
+## Authentication (NextAuth.js v5)
+```
+AUTH_SECRET="generate-with-openssl-rand-base64-32"
+AUTH_GOOGLE_ID="your-google-oauth-client-id"
+AUTH_GOOGLE_SECRET="your-google-oauth-client-secret"
+```
 
-# NextAuth
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your-super-secret-key-here-generate-with-openssl-rand-base64-32"
-
-# Google OAuth
-GOOGLE_CLIENT_ID="your-google-client-id"
-GOOGLE_CLIENT_SECRET="your-google-client-secret"
-
-# Stripe
+## Stripe Billing
+```
 STRIPE_SECRET_KEY="sk_test_..."
-STRIPE_PUBLISHABLE_KEY="pk_test_..."
 STRIPE_WEBHOOK_SECRET="whsec_..."
-STRIPE_STARTER_PRICE_ID="price_..."
-STRIPE_PRO_PRICE_ID="price_..."
-STRIPE_ENTERPRISE_PRICE_ID="price_..."
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
+STRIPE_STARTER_PRICE_ID="price_..."   # $19/month
+STRIPE_PRO_PRICE_ID="price_..."       # $49/month
+STRIPE_ENTERPRISE_PRICE_ID="price_..." # $99/month
+```
 
-# Google Custom Search (for piracy scanning)
+## Google Custom Search
+```
 GOOGLE_CSE_API_KEY="your-google-cse-api-key"
 GOOGLE_CSE_ID="your-custom-search-engine-id"
+```
 
-# Email (Resend)
+## Email (Resend)
+```
 RESEND_API_KEY="re_..."
-EMAIL_FROM="PirateSlayer <noreply@yourdomain.com>"
+```
 
-# Redis (Upstash)
-REDIS_URL="redis://default:xxx@xxx.upstash.io:6379"
+## Telegram Scanner (Optional)
+```
+TELEGRAM_API_ID="your-telegram-api-id"
+TELEGRAM_API_HASH="your-telegram-api-hash"
+TELEGRAM_SESSION="your-telegram-session-string"
+```
 
-# App URL
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
+## Cron Jobs Security
+```
+CRON_SECRET="your-cron-secret-here"
+```
+Generate with: `openssl rand -hex 32`
+
+---
+
+## Vercel Cron Jobs
+
+Configured in `vercel.json`:
+
+| Endpoint | Schedule | Purpose |
+|----------|----------|---------|
+| `/api/cron/cache-cleanup` | Every 6 hours | Clean expired cache |
+| `/api/cron/scan` | Every 4 hours | Auto-scan content |
+
+**Note:** Cron jobs require Vercel Pro ($20/mo). For Hobby plan, use [cron-job.org](https://cron-job.org) (free):
+```
+URL: https://yourdomain.com/api/cron/cache-cleanup
+Headers: Authorization: Bearer YOUR_CRON_SECRET
+Schedule: 0 */6 * * *
+```

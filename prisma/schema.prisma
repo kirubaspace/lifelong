@@ -245,3 +245,33 @@ model ScanJob {
   @@index([contentId])
   @@index([status])
 }
+
+// ============================================================================
+// SCAN CACHE - Reduces API calls by caching results for 48 hours
+// ============================================================================
+
+model ScanCache {
+  id        String   @id @default(cuid())
+  contentId String
+  
+  // Cache key (hash of query parameters)
+  cacheKey  String   @unique
+  
+  // Cached scan results as JSON
+  results   Json
+  
+  // Source of the cached results
+  sourceType String  // google, telegram, torrent
+  
+  // Cache metadata
+  hitCount  Int      @default(0)
+  
+  // TTL management
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([contentId])
+  @@index([expiresAt])
+  @@index([sourceType])
+}

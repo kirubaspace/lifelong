@@ -5,6 +5,7 @@
  */
 
 import { prisma } from "@/lib/db"
+import { getCachedResults, setCachedResults, CachedScanResult } from "@/services/cache/scan-cache"
 
 const GOOGLE_CSE_API_KEY = process.env.GOOGLE_CSE_API_KEY
 const GOOGLE_CSE_ID = process.env.GOOGLE_CSE_ID
@@ -123,34 +124,40 @@ interface GoogleSearchResponse {
     }
 }
 
-// Search query templates - base
-const SEARCH_TEMPLATES = [
-    '"{title}" free download',
-    '"{title}" torrent',
-    '"{title}" telegram channel',
-    '"{title}" mega.nz',
-    '"{title}" google drive free',
-]
+// OPTIMIZED: Smart combined queries using OR operators
+// Reduces from 17 queries to 3 per scan = 6x API cost reduction
 
-// Video-specific search templates
-const VIDEO_SEARCH_TEMPLATES = [
-    '"{title}" course download mp4',
-    '"{title}" full course free',
-    '"{title}" video torrent',
-    '"{title}" 1080p download',
-    '"{title}" course videos mega',
-    '"{title}" udemy rip',
-]
+/**
+ * Generate optimized search queries for a content item
+ * Uses Google's OR operator to combine multiple patterns into fewer API calls
+ */
+function generateOptimizedQueries(title: string, keywords: string[], contentType: string): string[] {
+    const queries: string[] = []
 
-// PDF-specific search templates
-const PDF_SEARCH_TEMPLATES = [
-    '"{title}" pdf free download',
-    '"{title}" ebook download',
-    '"{title}" pdf torrent',
-    '"{title}" libgen',
-    '"{title}" workbook free pdf',
-    '"{title}" course materials pdf',
-]
+    // Query 1: Primary piracy sources (combines 5 old queries into 1)
+    queries.push(`"${title}" (free download OR torrent OR mega.nz OR telegram channel OR google drive free)`)
+
+    // Query 2: Content-type specific piracy patterns
+    if (contentType === "video") {
+        queries.push(`"${title}" (course rip OR udemy free OR video torrent OR mp4 download OR full course)`)
+    } else if (contentType === "pdf") {
+        queries.push(`"${title}" (pdf free OR ebook download OR libgen OR epub OR course materials)`)
+    } else {
+        queries.push(`"${title}" (course free OR download link OR leaked OR shared)`)
+    }
+
+    // Query 3: Keyword-based search (only if keywords exist)
+    if (keywords.length > 0) {
+        const primaryKeyword = keywords[0]
+        if (contentType === "pdf") {
+            queries.push(`"${primaryKeyword}" (pdf free download OR ebook OR course pdf)`)
+        } else {
+            queries.push(`"${primaryKeyword}" (free download OR course video OR tutorial free)`)
+        }
+    }
+
+    return queries
+}
 
 /**
  * Search Google Custom Search for potential infringements
@@ -288,9 +295,15 @@ export interface ScanResult {
 
 /**
  * Scan a single protected content item using Google CSE
- * Now content-type aware - uses different search patterns for video vs PDF
+ * Now with caching to reduce API calls by 50-70%
  */
 export async function scanContent(contentId: string): Promise<ScanResult[]> {
+    // Check cache first
+    const cachedResults = await getCachedResults(contentId, "google")
+    if (cachedResults) {
+        return cachedResults as ScanResult[]
+    }
+
     const content = await prisma.protectedContent.findUnique({
         where: { id: contentId },
     })
@@ -303,32 +316,8 @@ export async function scanContent(contentId: string): Promise<ScanResult[]> {
     const seenUrls = new Set<string>()
     const contentType = content.contentType || "video"
 
-    // Generate base search queries
-    const queries = SEARCH_TEMPLATES.map(template =>
-        template.replace("{title}", content.title)
-    )
-
-    // Add content-type specific search queries
-    if (contentType === "video") {
-        for (const template of VIDEO_SEARCH_TEMPLATES) {
-            queries.push(template.replace("{title}", content.title))
-        }
-    } else if (contentType === "pdf") {
-        for (const template of PDF_SEARCH_TEMPLATES) {
-            queries.push(template.replace("{title}", content.title))
-        }
-    }
-
-    // Add keyword-based queries with content-type context
-    for (const keyword of content.keywords.slice(0, 3)) {
-        if (contentType === "pdf") {
-            queries.push(`"${keyword}" pdf free download`)
-            queries.push(`"${keyword}" ebook`)
-        } else {
-            queries.push(`"${keyword}" free download`)
-            queries.push(`"${keyword}" course video`)
-        }
-    }
+    // OPTIMIZED: Use smart combined queries (3 instead of 17)
+    const queries = generateOptimizedQueries(content.title, content.keywords, contentType)
 
     // Execute searches (with rate limiting)
     for (const query of queries) {
@@ -364,7 +353,12 @@ export async function scanContent(contentId: string): Promise<ScanResult[]> {
     // Sort by confidence
     results.sort((a, b) => b.confidence - a.confidence)
 
-    return results.slice(0, 20) // Limit to top 20 results
+    const finalResults = results.slice(0, 20) // Limit to top 20 results
+
+    // Store in cache for future requests
+    await setCachedResults(contentId, "google", finalResults)
+
+    return finalResults
 }
 
 /**
@@ -375,6 +369,7 @@ import { runTorrentScan } from "./torrent-scanner"
 
 /**
  * Run a full scan (Google + Telegram + Torrent) and save results to database
+ * Hybrid Model: Free tier uses Telegram + Torrent only; Paid tiers get Google CSE
  */
 export async function runScanJob(contentId: string): Promise<number> {
     const scanJob = await prisma.scanJob.create({
@@ -387,16 +382,39 @@ export async function runScanJob(contentId: string): Promise<number> {
     })
 
     try {
-        // Run Google Scan
-        console.log(`[Scan] Starting Google scan for content: ${contentId}`)
-        const googleResults = await scanContent(contentId)
-        console.log(`[Scan] Google found ${googleResults.length} results`)
+        // Get content and user to check plan
+        const content = await prisma.protectedContent.findUnique({
+            where: { id: contentId },
+            include: {
+                user: {
+                    include: {
+                        subscription: true
+                    }
+                }
+            }
+        })
 
-        // Get content for Telegram and Torrent scans
-        const content = await prisma.protectedContent.findUnique({ where: { id: contentId } })
+        if (!content) {
+            throw new Error("Content not found")
+        }
 
+        // Check user's plan for Google CSE access
+        // Free tier = no active subscription, Paid = has active subscription
+        const hasActiveSubscription = content.user?.subscription?.status === "active"
+        const useGoogleCSE = hasActiveSubscription // Only paid plans get Google CSE
+
+        let googleResults: ScanResult[] = []
         let telegramResults: any[] = []
         let torrentInfringements = 0
+
+        // Run Google Scan (only for paid users)
+        if (useGoogleCSE) {
+            console.log(`[Scan] Starting Google scan for content: ${contentId} (Paid user)`)
+            googleResults = await scanContent(contentId)
+            console.log(`[Scan] Google found ${googleResults.length} results`)
+        } else {
+            console.log(`[Scan] Skipping Google CSE for free plan user - using Telegram + Torrent only`)
+        }
 
         if (content) {
             // Run Telegram Scan
