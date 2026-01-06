@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Check, Loader2 } from "lucide-react"
 import { PLANS } from "@/lib/stripe"
+import { toast } from "sonner"
 
 export default function BillingPage() {
     const [loading, setLoading] = useState<string | null>(null)
@@ -15,6 +16,7 @@ export default function BillingPage() {
             setLoading(plan)
             const priceId = PLANS[plan as keyof typeof PLANS]?.priceId
             if (!priceId) {
+                toast.error("Stripe not configured. Please contact support.")
                 console.error("No price ID for plan:", plan)
                 return
             }
@@ -26,11 +28,17 @@ export default function BillingPage() {
 
             const data = await response.json()
 
+            if (data.error) {
+                toast.error(data.error)
+                return
+            }
+
             if (data.url) {
                 window.location.href = data.url
             }
         } catch (error) {
             console.error(error)
+            toast.error("Failed to start checkout. Please try again.")
         } finally {
             setLoading(null)
         }
