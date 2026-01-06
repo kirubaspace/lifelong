@@ -137,18 +137,17 @@ export default async function InfringementsPage() {
                                                 </Link>
                                             </Button>
 
-                                            {item.status === "detected" && (
-                                                <Button
-                                                    asChild
-                                                    size="sm"
-                                                    className="bg-purple-600 hover:bg-purple-700"
-                                                >
-                                                    <Link href={`/dashboard/infringements/${item.id}/takedown`}>
-                                                        <Send className="w-4 h-4 mr-2" />
-                                                        Send Takedown
-                                                    </Link>
-                                                </Button>
-                                            )}
+                                            <Button
+                                                asChild
+                                                variant="outline"
+                                                size="sm"
+                                                className="border-slate-700 text-slate-300 hover:bg-slate-800"
+                                            >
+                                                <Link href="/dashboard/takedowns">
+                                                    <Send className="w-4 h-4 mr-2" />
+                                                    Manage
+                                                </Link>
+                                            </Button>
                                         </div>
                                     </div>
                                 </CardContent>
